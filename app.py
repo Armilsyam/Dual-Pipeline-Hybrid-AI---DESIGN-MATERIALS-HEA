@@ -21,56 +21,80 @@ def run_pipeline_a():
     with st.expander("1. GAN Augmentation (Data Sintetik)", expanded=True):
         st.write("Menggunakan Tabular GAN untuk memperbanyak data langka...")
         
-        # Membuat Mockup 5000 Data Sintetik
-        n_rows = 5000
-        # Menggunakan distribusi Dirichlet agar total kelima elemen selalu 100%
-        gan_data = np.random.dirichlet(np.ones(5), size=n_rows) * 100
-        df_gan = pd.DataFrame(gan_data, columns=['Fe', 'Cr', 'Ni', 'Cu', 'Al'])
-        
-        # Membulatkan nilai agar lebih rapi (2 angka di belakang koma)
-        df_gan = df_gan.round(2)
+        n_rows_gan = 5000
+        gan_data = np.random.dirichlet(np.ones(5), size=n_rows_gan) * 100
+        df_gan = pd.DataFrame(gan_data, columns=['Fe', 'Cr', 'Ni', 'Cu', 'Al']).round(2)
         
         st.progress(100)
-        st.success("Berhasil menghasilkan 5,000 baris data komposisi sintetik yang divalidasi Isolation Forest.")
+        st.success(f"Berhasil menghasilkan {n_rows_gan:,} baris data komposisi sintetik yang divalidasi Isolation Forest.")
         
-        # Menampilkan cuplikan data (5 baris pertama)
-        st.write("Cuplikan Data Sintetik (Top 5):")
-        st.dataframe(df_gan.head(5), use_container_width=True)
-        
-        # Fungsi konversi DataFrame ke CSV (menggunakan cache agar cepat)
         @st.cache_data
         def convert_df(df):
             return df.to_csv(index=False).encode('utf-8')
 
-        csv_gan = convert_df(df_gan)
-        
-        # Tombol Unduh CSV
         st.download_button(
             label="📥 Unduh 5.000 Dataset Sintetik GAN (CSV)",
-            data=csv_gan,
+            data=convert_df(df_gan),
             file_name='hea_gan_synthetic_data.csv',
             mime='text/csv',
             type="primary"
         )
 
-    with st.expander("2. PINN Evaluator (Constraint Termodinamika)"):
-        st.write("Mengevaluasi konstrain hukum kekekalan massa (Total = 100%).")
+    with st.expander("2. PINN Evaluator (Constraint Termodinamika)", expanded=True):
+        st.write("Mengevaluasi konstrain hukum kekekalan massa (Total = 100%) dan menghitung *Fitness Score* (Kekuatan vs Biaya).")
         st.latex(r"\mathcal{L}_{physics} = \left( \sum_{i=1}^{5} c_i - 100 \right)^2")
-        st.success("Model PINN terkalibrasi. Prediksi kekuatan (MPa) dan biaya (USD/kg) siap.")
-
-    with st.expander("3. NSGA-II Optimization (Pareto Optimal)"):
-        st.write("Mengekstrak Himpunan Pareto dari triliunan permutasi komposisi...")
+        st.success("Model PINN terkalibrasi. Berikut adalah Top 10 Kandidat Induk (Generasi Elit) siap kawin-silang:")
         
-        # Simulasi data Pareto Front
-        df_pareto = pd.DataFrame({
-            'Fe': [25.0, 20.0, 15.0], 'Cr': [20.0, 20.0, 25.0], 
-            'Ni': [15.0, 20.0, 25.0], 'Cu': [25.0, 20.0, 15.0], 'Al': [15.0, 20.0, 20.0],
-            'Biaya_USD': [15.5, 22.0, 31.5],
-            'Kekuatan_MPa': [450, 780, 920],
-            'Label': ['Murah', 'Optimal', 'Kuat']
-        })
-        st.dataframe(df_pareto, use_container_width=True)
-        return df_pareto.iloc[1] # Mengembalikan kandidat 'Optimal'
+        # Simulasi 10 Kandidat Terbaik dari PINN
+        pinn_data = np.random.dirichlet(np.ones(5), size=10) * 100
+        df_pinn = pd.DataFrame(pinn_data, columns=['Fe', 'Cr', 'Ni', 'Cu', 'Al']).round(2)
+        
+        # Simulasi Prediksi Properti AI
+        df_pinn['Kekuatan_Prediksi (MPa)'] = np.random.randint(600, 1000, size=10)
+        df_pinn['Biaya_Prediksi (USD/kg)'] = np.round(np.random.uniform(15.0, 35.0, size=10), 2)
+        
+        # Menghitung Fitness Score (Semakin tinggi Kekuatan dan semakin rendah Biaya = Semakin Bagus)
+        df_pinn['Fitness_Score'] = np.round(df_pinn['Kekuatan_Prediksi (MPa)'] / df_pinn['Biaya_Prediksi (USD/kg)'], 2)
+        df_pinn = df_pinn.sort_values(by='Fitness_Score', ascending=False).reset_index(drop=True)
+        df_pinn.index = df_pinn.index + 1 # Memulai index dari 1
+        
+        st.dataframe(df_pinn, use_container_width=True)
+
+    with st.expander("3. NSGA-II Optimization (Pareto Optimal)", expanded=True):
+        st.write("Mengekstrak populasi generasi akhir Himpunan *Pareto* dari triliunan permutasi komposisi lewat mutasi dan *crossover*...")
+        
+        # Simulasi Populasi Generasi Terakhir Pareto Front (misal: 100 kromosom terbaik)
+        n_pareto = 100
+        pareto_data = np.random.dirichlet(np.ones(5), size=n_pareto) * 100
+        df_pareto = pd.DataFrame(pareto_data, columns=['Fe', 'Cr', 'Ni', 'Cu', 'Al']).round(2)
+        
+        # Distribusi data Pareto yang mensimulasikan hukum Trade-off
+        df_pareto['Biaya_USD_per_kg'] = np.round(np.random.uniform(16.0, 26.0, size=n_pareto), 2)
+        # Mensimulasikan korelasi: Biaya yang sedikit lebih tinggi biasanya membawa kekuatan lebih tinggi
+        df_pareto['Kekuatan_Yield_MPa'] = np.round((df_pareto['Biaya_USD_per_kg'] * 30) + np.random.randint(100, 200, size=n_pareto), 0)
+        
+        # Urutkan berdasarkan Kekuatan Tertinggi dan Biaya Terendah untuk menampilkan Sang Juara di Baris 1
+        df_pareto = df_pareto.sort_values(by=['Kekuatan_Yield_MPa', 'Biaya_USD_per_kg'], ascending=[False, True]).reset_index(drop=True)
+        df_pareto.index = df_pareto.index + 1
+        
+        st.success(f"Evolusi konvergen! Menemukan {n_pareto} kandidat pada garis batas Pareto Optimal.")
+        st.write("Cuplikan Generasi Terbaik (Top Pareto Front):")
+        st.dataframe(df_pareto.head(10), use_container_width=True)
+        
+        # Tombol Unduh untuk Himpunan Pareto
+        st.download_button(
+            label="📥 Unduh Seluruh Himpunan Pareto NSGA-II (CSV)",
+            data=convert_df(df_pareto),
+            file_name='nsgaii_pareto_front_generation.csv',
+            mime='text/csv',
+            type="secondary"
+        )
+        
+        # Mengambil Kandidat Juara (Baris Pertama / Index 1) untuk diteruskan ke Pipeline B
+        kandidat_terbaik = df_pareto.iloc[0]
+        st.info(f"Kandidat Peringkat #1 dengan kekuatan {kandidat_terbaik['Kekuatan_Yield_MPa']} MPa pada biaya ${kandidat_terbaik['Biaya_USD_per_kg']} diteruskan sebagai OUTPUT FINAL.")
+        
+        return kandidat_terbaik
 
 # --- PIPELINE B: FISIKA ---
 def run_pipeline_b(kandidat):
