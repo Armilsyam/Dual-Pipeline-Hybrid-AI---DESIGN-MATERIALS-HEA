@@ -1,0 +1,15 @@
+Pipeline 1 (GAN-PINN-GA) — Generative-Driven Exploration
+
+Tahap 1 (GAN): Memulai dengan kreativitas radikal. GAN mengeksplorasi ruang kombinatorial secara masif untuk menyintesis 5.000 data tabular baru tanpa memedulikan hukum fisika di awal.
+
+Tahap 2 (PINN + Crossover): 5.000 data mentah GAN disaring ketat oleh PINN. Hanya data yang patuh hukum termodinamika yang lolos menjadi "Induk Elit". Di tahap ini, proses crossover (perkawinan silang) pertama dilakukan berdasarkan bobot kepatuhan fisis.
+
+Tahap 3 (GA Final Selection): Menggunakan NSGA-II untuk melakukan perkawinan lanjutan (generasi penerus) guna mengunci Himpunan Pareto terbaik, menghasilkan kandidat final yang seimbang antara harga dan kekuatan.
+
+Pipeline 2 (GA-PINN-GAN) — Evolutionary-Driven Exploration
+
+Tahap 1 (GA): Memulai dengan populasi acak terstruktur sebanyak 5.000 kromosom awal. Algoritma genetika menyebarkan antena pencarian ke seluruh ruang permutasi unsur.
+
+Tahap 2 (PINN + Crossover): Populasi raksasa GA dievaluasi oleh PINN. Proses crossover dilakukan secara agresif menggunakan fungsi kebugaran (fitness score) murni untuk menyaring kromosom unggul.
+
+Tahap 3 (GAN Refinement & Visualization): Hasil perkawinan lanjut tidak dioptimasi lagi oleh GA, melainkan diumpankan ke GAN. GAN bertugas sebagai "pakar pemurni" untuk merekonstruksi distribusi data agar fasa kristalnya super stabil, sekaligus merender visualisasi struktur mikro kristal secara presisi.
