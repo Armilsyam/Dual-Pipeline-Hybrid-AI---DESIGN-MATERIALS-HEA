@@ -20,8 +20,38 @@ def run_pipeline_a():
     
     with st.expander("1. GAN Augmentation (Data Sintetik)", expanded=True):
         st.write("Menggunakan Tabular GAN untuk memperbanyak data langka...")
+        
+        # Membuat Mockup 5000 Data Sintetik
+        n_rows = 5000
+        # Menggunakan distribusi Dirichlet agar total kelima elemen selalu 100%
+        gan_data = np.random.dirichlet(np.ones(5), size=n_rows) * 100
+        df_gan = pd.DataFrame(gan_data, columns=['Fe', 'Cr', 'Ni', 'Cu', 'Al'])
+        
+        # Membulatkan nilai agar lebih rapi (2 angka di belakang koma)
+        df_gan = df_gan.round(2)
+        
         st.progress(100)
         st.success("Berhasil menghasilkan 5,000 baris data komposisi sintetik yang divalidasi Isolation Forest.")
+        
+        # Menampilkan cuplikan data (5 baris pertama)
+        st.write("Cuplikan Data Sintetik (Top 5):")
+        st.dataframe(df_gan.head(5), use_container_width=True)
+        
+        # Fungsi konversi DataFrame ke CSV (menggunakan cache agar cepat)
+        @st.cache_data
+        def convert_df(df):
+            return df.to_csv(index=False).encode('utf-8')
+
+        csv_gan = convert_df(df_gan)
+        
+        # Tombol Unduh CSV
+        st.download_button(
+            label="📥 Unduh 5.000 Dataset Sintetik GAN (CSV)",
+            data=csv_gan,
+            file_name='hea_gan_synthetic_data.csv',
+            mime='text/csv',
+            type="primary"
+        )
 
     with st.expander("2. PINN Evaluator (Constraint Termodinamika)"):
         st.write("Mengevaluasi konstrain hukum kekekalan massa (Total = 100%).")
@@ -33,8 +63,8 @@ def run_pipeline_a():
         
         # Simulasi data Pareto Front
         df_pareto = pd.DataFrame({
-            'Fe': [25, 20, 15], 'Cr': [20, 20, 25], 
-            'Ni': [15, 20, 25], 'Cu': [25, 20, 15], 'Al': [15, 20, 20],
+            'Fe': [25.0, 20.0, 15.0], 'Cr': [20.0, 20.0, 25.0], 
+            'Ni': [15.0, 20.0, 25.0], 'Cu': [25.0, 20.0, 15.0], 'Al': [15.0, 20.0, 20.0],
             'Biaya_USD': [15.5, 22.0, 31.5],
             'Kekuatan_MPa': [450, 780, 920],
             'Label': ['Murah', 'Optimal', 'Kuat']
